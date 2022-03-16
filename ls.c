@@ -158,4 +158,86 @@ Demonstrate_dir函数是获取path目录下所有文件的完整路径名，再�
 i=1;
 do{
   //如果不是目标文件名或者目录，就解析下一个命令行参数
-if(argv)
+if(argv[i][0]=='-')
+{
+  i++;
+  continue;
+}
+else
+{
+  strcpy(path,argv[i]);  //如果目标文件或者目录不存在，报错之后退出程序
+if(stat(path,&buf)==-1)
+{
+  error("stat",__LINE__);
+}
+if (S_ISDIR(buf.st_mode)) //argv[i]是一个目录
+{
+if(path[strlen(argv[i]-1)]!='/') //如果目录的最后一个字符不是/就添加/
+{
+  path[strlen(argv[i])='/'];
+  path[strlen(argv[i])+1]='\0';
+}
+else
+{
+  path[strlen(argv[i])]='\0';
+}
+Demonstrate_dir(flag_parameter,path);
+i++;
+}
+else  //argv[i]是一个文件
+{
+  Demonstrate(flag_parameter,path);
+  i++;
+}
+}
+}
+while(i<argc);
+
+return 0;
+
+}
+
+void error(const char *err_string,int line)//错误处理函数，打印错误所在行的行数和错误信息
+{
+  fprintf(stderr,"line:%d ",line);
+  perror(err_string);
+  exit(1);
+}
+
+void Demonstrate_attribute(struct stat buf,char * name) //获取文件属性并且打印
+{
+ char buf_time[32];//存放时间的
+ struct passwd *psd;//从这个结构体中获取文件所有者的用户名
+ struct group *grp; //从这个结构体中获取文件所有者所属组的组名
+//获取并且打印文件类型
+//st_mode  文件内容和存储权限
+if(S_ISLNK(BUF.st_mode))  //判断是否为符号链接
+{
+  printf('1');
+}
+else if (S_ISREG(buf.st_mode)) //判断是否是目录
+{
+  printf("-");
+}
+else if (S_ISCHR(buf.st_mode))  //判断是否是字符设备文件
+{
+  printf("c");
+}
+else if (S_ISBLK(buf.st_mode))//判断是否是块设备文件
+{
+  printf("b");
+}
+else if (S_ISFIFO(buf.st_mode)) //判断是否是先进先出的FIFO
+{
+  printf("f");
+}
+else if (S_ISSOCK(buf.st_mode))//判断是否是socket 
+{
+  printf("s");
+}
+
+//获取并且打印文件所有者的权限
+
+
+}
+
