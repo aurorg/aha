@@ -55,6 +55,7 @@ c>:struct group *grp;//从该结构体重获取文件所有者所属组的组名
 #include <string.h>
 #include <time.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #include <linux/limits.h>
 #include <dirent.h>
@@ -237,6 +238,240 @@ else if (S_ISSOCK(buf.st_mode))//判断是否是socket
 }
 
 //获取并且打印文件所有者的权限
+if (buf.st_mode & S_IRUSR)
+{
+  printf("i");
+}
+else
+{
+ printf("-");
+}
+if (buf.st_mode & S_IMUSR)
+{
+  printf("w");
+}
+else 
+{
+  printf("-");
+}
+if(buf.st_mode & S_IXUSR)
+{
+  printf("x");
+}
+else
+{
+  printf("-");
+}
+
+//获取并且打印与文件所有者同组的用户对该文件的操作权限
+
+if(buf.st_mode & S_IRGRP)
+{
+  printf("r");
+}
+else
+{
+  printf("-");
+}
+if (buf.st_mode & S_IWGRP)
+{
+  printf("w");
+}
+else
+{
+  printf("-");
+}
+if (buf.st_mode & S_IXGRP)
+{
+  printf("x");
+}
+else
+{
+  printf("-");
+}
+
+//获取并且打印其他用户的对该文件的操作权限
+
+if (buf.st_mode & S_IROTH)
+{
+  printf("r");
+}
+else
+{
+  printf("-");
+}
+if (buf.st_mode & S_IWOTH)
+{
+  printf("r");
+}
+else
+{
+  printf("-");
+}
+if (buf.st_mode & S_IWOTH)
+{
+  printf("w");
+}
+else
+{
+  printf("-");
+}
+if (buf.st_mode & S_IXOTH)
+{
+  printf("x");
+}
+else
+{
+  printf("-");
+}
+printf(" ");
+
+//根据uid和gid获取文件所有者的用户名与组名
+
+psd = getpwuid(buf.st_uid);
+grp = getgrgid(buf.st_gid);
+printf("%4d ",buf.st_nlike); //打印文件的链接数 （该文件硬连接数目）
+printf("%-9s",psd->pw_name); //打印文件拥有者
+printf("%-8s",grp->gr_name); //打印文件的大小
+strcpy(buf_time,ctime(&buf.st_size)); 
+buf_time[strlen(buf_time)-1]='\0'; //去掉换行符
+printf(" %s",buf_time); //打印文件的时间信息
+}
+
+//在没有使用-l选项的时候，打印一个文件名，打印时上下行之间进行对齐
+
+void Demonstrate_single(char*name)
+{
+  int i,len;
+  if (g_lenve_len<g_maxlen)  //如果本行打印不下一个文件名，就换行
+  {
+    printf("\n");
+    g_leave_len = MAXROWLEN;
+  }
+  len=strlen(name);
+  len=g_maxlen -len;
+  printf("%-s",name);
+  for(i=0; i<len; i++)
+  {
+    printf(" ");
+  }
+  printf(" ");
+
+g_leave_len-=(g_maxlen+2); //这两个指示空格
+}
+
+//根据命令行参数和完整路径名显示目标文件
+//参数flag:命令行参数
+//参数pathname:包含了文件名的路径名
+void Demonstrate(int flag,char * pathname)
+{
+  int i,j;
+  struct stat buf;
+  char name[NAME_MAX+1]
+  //从路径中解析出文件名
+  for(i=0; j=0; i<strlen(pathname); i++)
+  {
+  if (pathname[i]=='/')
+  {
+    j=0;
+    continue;
+  }
+  name[j++]=pathname[i];
+  }
+  name[j]='/0';
+
+//用lstat而不是stat以方便解析链接文件
+if (linkat(pathname,&buf)==-1) //lstat返回的是符号链接文件，文件本身的状态信息
+{
+  error("stat",__LINE__);
+}
+switch(flag)
+{
+  case PARAMETER_NONE; //没有-l和-a选项
+  if (name[0]!='.')
+  {
+    Demonstrate_single(name);
+  }
+  break;
+  case PARAMETER_A: // -a显示包括隐藏文件在内的所有文件
+  Demonstrate_single(name);
+  break;
+  case  PARAMETER_L: //每个文件单独占一行，显示文件的详细属性信息
+  if (name[0]!='.')
+  {
+    Demonstrate_attribute (buf,name);
+    printf(" %-s\n",name);
+  }
+  break;
+  case PARAMETER_A + PARAMETER_L; //同时有-a和-l选项的情况
+  Demonstrate_attribute(buf,name);
+  printf(" %-s\n",name);
+  break;
+  default:
+  break;
+}
+}
+
+//为了显示目录下的文件做准备
+void Demonstrate_dir(int flag_parameter,char *path)
+{
+  DIR*dir;
+  struct dirent *ptr;
+  int count=0;
+  char filenames[256] [PATH_MAX+1]; 
+  // 获取该目录下文件总数和最长的文件名
+  dir =opendir(path);
+  if(dir==NULL)
+  {
+    error("opendir",__LINE__);
+  }
+  while((ptr=readdir(dir)) !=NULL)
+{
+  if (g_maxlen<strlen(ptr->d_name))
+  g_maxlen=strlen(ptr->d_name);
+  count++;
+} 
+closedir(dir);
+if(count>256)
+error("太多了"，__LINE__);
+int i,j.len=strlen(path);
+
+// 获取这个目录下所有的文件名
+dir =opendir(path);
+for(i=0; i<count; i++)
+{
+  ptr=readdir(dir);
+  if(ptr==NULL)
+  {
+    error("readdir",__LINE__);
+  }
+  strncpy(filenames[i],path,len);//存放目录下所有文件名
+  filenames[i][len]='\0';
+}
+
+//使用冒泡排序的方法对文件名进行排序，排序后文件名按照字母顺序存在filenames
+for(i=0; i<count-1; i++)
+for(j=0; j<count-1-i; j++)
+{
+  if(strcmp(filename[j],filenames[j+1])>0)
+{
+  strcpy(temp,filenames[j+1]);
+  temp[strlen(filenames[j+1])] = '\0';
+  strcpy(filenames[j+1],filename[j]);
+  filenames[j+1][strlen(filenames[j])] = '\0';
+  strcpy(filenames[j],temp);
+  filenames[j][strlen(temp)]='\0';
+
+}
+}
+for(i=0; i<count; i++)
+Demonstrate(flag_parameter,filenames[i]);
+closedir(dir);
+//如果命令行中没有-l选项，打印一个换行符
+if((flag_parameter & PARAMETER_L)==0)
+printf("\n");
+
+} 
 
 
 }
