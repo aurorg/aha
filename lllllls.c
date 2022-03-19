@@ -1,4 +1,4 @@
- /*
+  /*
 1) 主要构造函数
 void error(const char *err_string,int line);//错误处理函数，打印错误所在行数和错误信息
 
@@ -81,6 +81,12 @@ c>:struct group *grp;//从该结构体重获取文件所有者所属组的组名
 #define PARAMETER_s 64   //-s
 #define PARAMETER_t 128
 #define MAXROWLEN 80 //一行显示的最多的字符数
+
+void error(const char *err_string,int line);//错误处理函数，打印错误所在行数和错误信息
+void display_attribute(struct stat buf,char *name);//获得文件属性并打印
+void display_single(char *name);//输出文件名，命令没有-l选择，输入文件名要保持上下对齐
+void display(int flag,char *pathname);//根据命令行参数和文件路径名来显示目标文件
+void display_dir(int flag_parameter,char *path);//为显示某个目录下的文件做准备
 
 int g_leave_len = MAXROWLEN; //一行剩余长度，用来输出对齐
 int g_maxlen;                // 存放有的目录下最长的文件名的长度
@@ -208,7 +214,7 @@ Demonstrate_dir函数是获取path目录下所有文件的完整路径名，再�
       strcpy(path, argv[i]); //如果目标文件或者目录不存在，报错之后退出程序
       if (stat(path, &buf) == -1)
       {
-        perror("stat", __LINE__);
+        error("stat", __LINE__);
       }
       if (S_ISDIR(buf.st_mode)) //argv[i]是一个目录
       {
@@ -359,10 +365,10 @@ void display_attribute(struct stat buf, char *name) //获取文件属性并且�
 
   psd = getpwuid(buf.st_uid);
   grp = getgrgid(buf.st_gid);
-  printf("%4d ", buf.st_nlink); //打印文件的链接数 （该文件硬连接数目）
+  printf("%4ld ", buf.st_nlink); //打印文件的链接数 （该文件硬连接数目）
   printf("%-9s", psd->pw_name); //打印文件拥有者
   printf("%-8s", grp->gr_name); //打印文件的大小
-  printf("%8d", buf.st_size);
+  printf("%8ld", buf.st_size);
   strcpy(buf_time, ctime(&buf.st_mtime));
   buf_time[strlen(buf_time) - 1] = '\0'; //去掉换行符
   printf(" %s", buf_time);               //打印文件的时间信息
@@ -540,7 +546,7 @@ void display_dir(int flag_parameter, char *path)
     ptr = readdir(dir);
     if (ptr == NULL)
     {
-      perror("readdir", __LINE__);
+      error("readdir", __LINE__);
     }
     strncpy(filenames[i], path, len); //存放目录下所有文件名
     filenames[i][len] = '\0';
@@ -628,3 +634,5 @@ void display_dir(int flag_parameter, char *path)
     {
       printf("\n");
     }
+  }
+}
