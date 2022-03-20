@@ -1,10 +1,10 @@
-  /*
+    /*
 1) 主要构造函数
 void error(const char *err_string,int line);//错误处理函数，打印错误所在行数和错误信息
-void Demonstrate_attribute(struct stat buf,char *name);//获得文件属性并打印
-void Demonstrate _single(char *name);//输出文件名，命令没有-l选择，输入文件名要保持上下对齐
-void Demonstrate(int flag,char *pathname);//根据命令行参数和文件路径名来显示目标文件
-void Demonstrate_dir(int flag_parameter,char *path);//为显示某个目录下的文件做准备
+void display_attribute(struct stat buf,char *name);//获得文件属性并打印
+void display_single(char *name);//输出文件名，命令没有-l选择，输入文件名要保持上下对齐
+void display(int flag,char *pathname);//根据命令行参数和文件路径名来显示目标文件
+void display_dir(int flag_parameter,char *path);//为显示某个目录下的文件做准备
 2）函数流程
   （1）获取该目录下文件的总数和最长文件名
   （2）若获取该目录下所有文件的文件名，存放于变量filenames中
@@ -59,22 +59,20 @@ c>:struct group *grp;//从该结构体重获取文件所有者所属组的组名
 # include <errno.h>
 # include <signal.h>
 
-//命令行参数(用二进制进行设计，就会对后面组合改写比较方便)
+//命令行参数
 #define PARAMETER_NONE 0 //没有参数
 #define PARAMETER_A 1    //-a
 #define PARAMETER_L 2    //-l
 #define PARAMETER_R 4    //-R
 #define PARAMETER_r 8    //-r
 #define PARAMETER_i 16   //-i
-#define PARAMETER_s 64   //-s
-#define PARAMETER_t 128  //-t
 #define MAXROWLEN 80 //一行显示的最多的字符数
 
-void  error(const char *err_string,int line);//错误处理函数，打印错误所在行数和错误信息
-void  Demonstrate_attribute(struct stat buf,char *name);//获得文件属性并打印
-void  Demonstrate_single(char *name);//输出文件名，命令没有-l选择，输入文件名要保持上下对齐
-void  Demonstrate(int flag,char *pathname);//根据命令行参数和文件路径名来显示目标文件
-void  Demonstrate_dir(int flag_parameter,char *path);//为显示某个目录下的文件做准备
+void error(const char *err_string,int line);//错误处理函数，打印错误所在行数和错误信息
+void display_attribute(struct stat buf,char *name);//获得文件属性并打印
+void display_single(char *name);//输出文件名，命令没有-l选择，输入文件名要保持上下对齐
+void display(int flag,char *pathname);//根据命令行参数和文件路径名来显示目标文件
+void display_dir(int flag_parameter,char *path);//为显示某个目录下的文件做准备
 
 int g_leave_len = MAXROWLEN; //一行剩余长度，用来输出对齐
 int g_maxlen;                // 存放有的目录下最长的文件名的长度
@@ -143,7 +141,7 @@ int main(int argc, char **argv)
 
       continue;
     }
-    else if (parameter[i] == 's')
+    /*else if (parameter[i] == 's')
     {
       flag_parameter = PARAMETER_s;
 
@@ -154,7 +152,7 @@ int main(int argc, char **argv)
       flag_parameter = PARAMETER_t;
 
       continue;
-    }
+    }*/
     else
     {
       printf("-%c\n", parameter[i]);
@@ -173,7 +171,7 @@ int main(int argc, char **argv)
   {
     strcpy(path, "./"); //./是当前目录
     path[2] = '\0';
-    Demonstrate_dir(flag_parameter, path);
+    display_dir(flag_parameter, path);
 
     return 0;
   }
@@ -215,12 +213,12 @@ Demonstrate_dir函数是获取path目录下所有文件的完整路径名，再�
         {
           path[strlen(argv[i])] = '\0';
         }
-         Demonstrate_dir(flag_parameter, path);
+        display_dir(flag_parameter, path);
         i++;
       }
       else //argv[i]是一个文件
       {
-         Demonstrate(flag_parameter, path);
+        display(flag_parameter, path);
       }
     i++;
     }
@@ -236,7 +234,7 @@ void ls_err(const char *err_string, int line) //错误处理函数，打印错�
   exit(1);
 }
 
-void  Demonstrate_attribute(struct stat buf, char *name) //获取文件属性并且打印
+void display_attribute(struct stat buf, char *name) //获取文件属性并且打印
 {
   char buf_time[32];  //存放时间的
   struct passwd *psd; //从这个结构体中获取文件所有者的用户名
@@ -250,6 +248,10 @@ void  Demonstrate_attribute(struct stat buf, char *name) //获取文件属性并
   else if (S_ISREG(buf.st_mode)) //判断是否是目录
   {
     printf("-");
+  }
+  else if (S_ISDIR(buf.st_mode)) 
+  {
+    printf("d");
   }
   else if (S_ISCHR(buf.st_mode)) //判断是否是字符设备文件
   {
@@ -271,7 +273,7 @@ void  Demonstrate_attribute(struct stat buf, char *name) //获取文件属性并
   //获取并且打印文件所有者的权限
   if (buf.st_mode & S_IRUSR)
   {
-    printf("i");
+    printf("r");
   }
   else
   {
@@ -354,17 +356,17 @@ void  Demonstrate_attribute(struct stat buf, char *name) //获取文件属性并
   psd = getpwuid(buf.st_uid);
   grp = getgrgid(buf.st_gid);
   printf("%4ld ", buf.st_nlink); //打印文件的链接数 （该文件硬连接数目）
-  printf("%-8s", psd->pw_name); //打印用户的名字
-  printf("%-8s", grp->gr_name); //打印用户组的名字
-  printf("%8ld", buf.st_size);  //打印文件的大小
-  strcpy(buf_time, ctime(&buf.st_mtime));//把时间转换成一般的格式
+  printf("%-9s", psd->pw_name); //打印文件拥有者
+  printf("%-8s", grp->gr_name); //打印文件的大小
+  printf("%8ld", buf.st_size);
+  strcpy(buf_time, ctime(&buf.st_mtime));
   buf_time[strlen(buf_time) - 1] = '0'; //去掉换行符
-  printf("  %s", buf_time);               //打印文件的时间信息
+  printf(" %s", buf_time);               //打印文件的时间信息
 }
 
 //在没有使用-l选项的时候，打印一个文件名，打印时上下行之间进行对齐
 
-void  Demonstrate_single(char *name)
+void display_single(char *name)
 {
   int i, len;
   if (g_leave_len < g_maxlen) //如果本行打印不下一个文件名，就换行
@@ -384,7 +386,7 @@ void  Demonstrate_single(char *name)
   g_leave_len -= (g_maxlen + 2); //这两个指示空格
 }
 
-void  Demonstrate_i(char *name)
+void display_i(char *name)
 {
   struct stat buf;
 
@@ -398,7 +400,7 @@ void  Demonstrate_i(char *name)
 //根据命令行参数和完整路径名显示目标文件
 //参数flag:命令行参数
 //参数pathname:包含了文件名的路径名
-void Demonstrate(int flag, char *pathname)
+void display(int flag, char *pathname)
 {
   int i, j;
   struct stat buf;
@@ -424,48 +426,48 @@ void Demonstrate(int flag, char *pathname)
   case PARAMETER_NONE: //没有-l和-a选项
     if (name[0] != '.')
     {
-       Demonstrate_single(name);
+      display_single(name);
     }
     break;
 
   case PARAMETER_A: // -a显示包括隐藏文件在内的所有文件
-     Demonstrate_single(name);
+    display_single(name);
     break;
 
   case PARAMETER_L: //每个文件单独占一行，显示文件的详细属性信息
     if (name[0] != '.')
     {
-      Demonstrate_attribute(buf, name);
+      display_attribute(buf, name);
       printf(" %-s\n", name);
     }
     break;
 
   case PARAMETER_A + PARAMETER_L: //同时有-a和-l选项的情况
-    Demonstrate_attribute(buf, name);
+    display_attribute(buf, name);
     printf(" %-s\n", name);
     break;
 
   case PARAMETER_R:
     if (name[0] != '.')
     {
-      Demonstrate_single(name);
+      display_single(name);
     }
     break;
 
   case PARAMETER_R + PARAMETER_A:
-    Demonstrate_attribute(buf, name);
+    display_attribute(buf, name);
     printf(" %-s\n", name);
     break;
 
   case PARAMETER_A + PARAMETER_L + PARAMETER_R:
-     Demonstrate_attribute(buf, name);
+    display_attribute(buf, name);
     printf(" %s\n", name);
     break;
 
   case PARAMETER_L + PARAMETER_R:
     if (name[0] != '.')
     {
-      Demonstrate_attribute(buf, name);
+      display_attribute(buf, name);
       printf(" %-s\n", name);
     }
     break;
@@ -473,37 +475,37 @@ void Demonstrate(int flag, char *pathname)
   case PARAMETER_r:
     if (name[0] != '.')
     {
-       Demonstrate_single(name);
+      display_single(name);
     }
     break;
 
   case PARAMETER_i:
     if (name[0] != '.')
     {
-      Demonstrate_single(name);
+      display_single(name);
     }
     break;
-
+/*
   case PARAMETER_s:
     if (name[0] != '.')
     {
-       Demonstrate_single(name);
+      display_single(name);
     }
     break;
   case PARAMETER_t:
     if (name[0] != '.')
     {
-       Demonstrate_single(name);
+      display_single(name);
     }
     break;
-   
+*/
   default:
     break;
   }
 }
 
 //为了显示目录下的文件做准备
-void  Demonstrate_dir(int flag_parameter, char *path)
+void display_dir(int flag_parameter, char *path)
 {
   DIR *dir;
   struct dirent *ptr;
@@ -526,7 +528,7 @@ void  Demonstrate_dir(int flag_parameter, char *path)
   }
   closedir(dir);
   if (count > 256)
-    ls_err("太多了放不下", __LINE__);
+    ls_err("太多了", __LINE__);
   int i, j, len = strlen(path);
 
   // 获取这个目录下所有的文件名
@@ -564,9 +566,23 @@ void  Demonstrate_dir(int flag_parameter, char *path)
         }
       }
     }
+    else {
+        for(i = 0; i < count-1; i++) {
+            for(j = 0; j < count-1-i; j++) {
+                if( strcmp(filenames[j],filenames[j+1]) > 0 ) {
+                    strcpy(temp,filenames[j+1]);
+                    temp[strlen(filenames[j+1])] = '\0';
+                    strcpy(filenames[j+1],filenames[j]);
+                    filenames[j+1][strlen(filenames[j])] = '\0';
+                    strcpy(filenames[j],temp);
+                    filenames[j][strlen(temp)] = '\0';
+                }
+            }
+        }
+    }
 
     for (i = 0; i <= count - 1; i++)
-      Demonstrate(flag_parameter, filenames[i]);
+      display(flag_parameter, filenames[i]);
 
     if (flag_parameter & PARAMETER_R)
     {
@@ -586,29 +602,36 @@ void  Demonstrate_dir(int flag_parameter, char *path)
           }
         }
       }
-/*对t的排序，因为-r是对文件名的排序，-t是对更改时间排序，这里改了一点发现不对，后续再想办法
-if(flag_parameter-=PARAMETER_T)
-{
-    flag_parameter-=PARAMETER_T;
-    for(i=0;i<=count-1;i++)
-    {
-        filenames[i]=(long*)malloc(sizeof(long));
-        stat(filenames[i],&buf);//获取数据
-        filenames[i][0]=buf.st_ctime;
-    }
-    for(i=0;i<=count-1;i++)
-    {
-        for(j=i;j<=count-1;j++)
-        {
-            if(filenames[i][0]<filenames[j][0])
-            strcpy(temp,filenames[i]);
-            strcpy(filenames[i],filenames[j]);
-            strcpy(filename[j],temp);
-        }
-    }
-}
-*/
 
+      while ((ptr = readdir(dir)) != NULL)
+      {
+        char path_R[PATH_MAX + 1];
+        strncpy(path_R, path, sizeof(path));
+        path_R[strlen(path_R) + 1] = '\0';
+        strcat(path_R,ptr->d_name);
+        int a = strlen(path_R);
+
+        path_R[a] = '\0';
+        struct stat buf_R;
+        lstat(path_R, &buf_R);
+
+        if (ptr->d_name[0] != 46 && ptr->d_name[1] != 46 && S_ISDIR(buf_R.st_mode))
+        {
+          printf("\n");
+          char path_R[PATH_MAX + 1];
+          strncpy(path_R, path, sizeof(path));
+
+          path_R[strlen(path_R) + 1] = '\0';
+          strcat(path_R, ptr->d_name);
+          int x = strlen(path_R);
+
+          path_R[x] = '/';
+          path_R[x + 1] = '\0';
+
+          printf("%s\n", path_R);
+          display_dir(flag_parameter, path_R);
+        }
+      }
     }
 
     closedir(dir);
